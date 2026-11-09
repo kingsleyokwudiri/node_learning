@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node --env-file=.env index.js",
-    "dev": "nodemon --env-file=.env index.js",
+    "start": "node index.js",
+    "dev": "nodemon index.js",
     "test": "node --test",
     "type-check": "node --check index.js"
   },

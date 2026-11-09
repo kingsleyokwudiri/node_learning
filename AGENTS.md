@@ -22,10 +22,11 @@ cp .env.example .env  # then fill in MONGODB_URI
 npm start              # or: npm run dev (nodemon)
 ```
 
-- Configuration is loaded from `.env` via Node's built-in `--env-file` flag; no dotenv package is used.
+- Configuration is loaded from `.env` inside `index.js` via `process.loadEnvFile(path.join(__dirname, ".env"))`; no dotenv package is used. Because the path is resolved from `__dirname`, `node index.js` works from any working directory, and there is no `--env-file` flag in the npm scripts. Existing shell environment variables take precedence over `.env` values.
 - Server listens on `process.env.PORT`, defaulting to `3000`.
-- The app exits at startup if `MONGODB_URI` is missing.
+- The app exits at startup with a clear message if `MONGODB_URI` is missing; the check runs before `app.listen(...)`.
 - The app connects to MongoDB on startup; a connection failure is logged but the HTTP server still starts.
+- The Atlas cluster is reachable in principle (Network Access List has `0.0.0.0/0` active), but the current Wi-Fi network (`NITDA-ICT-HUB`) drops outbound TCP 27015–27017. Proof: `cloud.mongodb.com:443`, `github.com:22` and `portquiz.net:80` connect, while `portquiz.net:27017`, `8.8.8.8:27017` and all Atlas shard hosts on 27015–27017 time out. This is a network egress restriction, not a code bug, Windows Firewall rule, or Atlas whitelist issue. Work on another network (hotspot/VPN), ask the network admin to allow 27015–27017 to `*.mongodb.net`, or point `MONGODB_URI` at a local MongoDB for development.
 
 ## Repository Layout
 
