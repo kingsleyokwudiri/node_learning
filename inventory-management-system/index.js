@@ -1,22 +1,22 @@
+// success
+// 200 - ok, 201 - created, 202 - accepted, 204 - no content
+// redirection
+// 301 - moved permanently, 302 - found, 304 - not modified
+// client errors
+// 400 - bad request, 401 - unauthorized, 403 - forbidden, 404 - not found
+// 405 - method not allowed, 409 - conflict, 422 - unprocessable entity, 429 - too many requests
+
 const path = require("node:path");
+require("dotenv").config({ path: path.join(__dirname, ".env"), quiet: true });
+
 const express = require("express");
 const mongoose = require("mongoose");
-
-// Load .env from this file's directory so `node index.js` works from any cwd.
-// Existing environment variables take precedence over values in the file.
-try {
-  process.loadEnvFile(path.join(__dirname, ".env"));
-} catch (error) {
-  if (error.code !== "ENOENT") {
-    throw error;
-  }
-}
 
 const connectionString = process.env.MONGODB_URI;
 
 if (!connectionString) {
   console.error(
-    "MONGODB_URI is not set. Copy .env.example to .env and add your connection string."
+    "MONGODB_URI is not set. Copy .env.example to .env and add your connection string.",
   );
   console.error(`Expected env file: ${path.join(__dirname, ".env")}`);
   process.exit(1);
@@ -24,24 +24,23 @@ if (!connectionString) {
 
 const app = express();
 const port = process.env.PORT || 3000;
+// for JSON request body parsing
+app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Hello world");
-});
+const bookSchema = mongoose.Schema({});
+BookModel = mongoose.model("Book", bookSchema);
 
-app.get("/about", (req, res) => {
-  res.send("About page");
-});
-
-app.get("/contact", (req, res) => {
-  res.send("Contact page");
+app.post("/books", async (req, res) => {
+  const newBook = await BookModel.create(req.body);
+  res.status(201).json(newBook);
 });
 
 app.listen(port, () => {
   console.log(`App listening on port ${port}`);
 });
 
-mongoose.connect(connectionString)
+mongoose
+  .connect(connectionString)
   .then(() => {
     console.log("Connected to MongoDB");
   })
