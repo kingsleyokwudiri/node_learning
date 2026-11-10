@@ -79,12 +79,13 @@ Tests run with Node's built-in test runner (`node --test`). There are no test fi
 
 - **Credentials & Secrets:** Never look at, expose, or log database passwords, connection strings, or sensitive credentials without explicit permission.
 - **Git Commits:** Do not include co-authors in git commit messages or trailers (e.g., no `Co-authored-by:` lines).
+- **Documentation in every commit (mandatory):** Every commit must review and update **both** `README.md` and this `AGENTS.md` so they match the code being committed. A change to routes, endpoints, request/response shapes, scripts, ports, environment variables, dependencies, project structure, or known issues is never complete until both files say so. If a file genuinely needs no change, state that explicitly in the commit message or hand-off. Do not leave documentation updates for a later commit.
 - **Code Integrity:** Always ensure `npm run type-check` and tests pass before completing a task.
 - **Dependencies:** Do not introduce new third-party packages without explicit permission.
 
 ## Before Finishing Work
 
-- Update the AGENTS.md file based on the stage/progress of the repo
+- Re-read `README.md` and `AGENTS.md` and update both to reflect the work being committed (see **Documentation in every commit** above). `README.md` is the user-facing description of setup and endpoints; `AGENTS.md` is the agent-facing record of state, conventions, and pitfalls. Keep them consistent with each other.
 - Run the server and confirm it starts if you changed startup or routing code.
 - Remove debugging `console.log` output that is not intentional.
 - Do not commit secrets or the MongoDB connection string.
