@@ -14,7 +14,7 @@ A collection of small Node.js/Express practice projects. Each project is self-co
 
 ## Inventory management system
 
-The main project. Requires a MongoDB connection string.
+The main project. Requires a MongoDB connection string. `index.js` holds the Express app (schema/model, routes, 404 and error handlers) and `app.js` is the entry point that loads `.env`, connects to MongoDB, and starts listening.
 
 ```bash
 cd inventory-management-system
@@ -32,28 +32,36 @@ Copy `.env.example` to `.env`. `MONGODB_URI` is required — the app exits at st
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `POST` | `/books` | Creates a book from the JSON request body. Returns `201` with the created document. |
+| `POST` | `/books` | Creates a book from the JSON request body. Requires `bookName` and `countInStock`. |
 
 Example:
 
 ```bash
 curl -X POST http://localhost:3000/books \
   -H "Content-Type: application/json" \
-  -d '{"title":"The Pragmatic Programmer"}'
+  -d '{"bookName":"The Pragmatic Programmer","countInStock":3}'
 ```
 
-Any other path or method returns Express's default `404`.
+Responses are always JSON:
 
-> **Note:** the `Book` schema is still an empty placeholder (`mongoose.Schema({})`). Mongoose strict mode drops fields that are not in the schema, so the response currently contains only `_id` and `__v`. Define schema fields before relying on stored data.
+| Status | When |
+| --- | --- |
+| `201` | Book created; returns the stored document |
+| `400` | `bookName`/`countInStock` missing, of the wrong type, or `countInStock` not a number (`{"message":"Validation failed","errors":{...}}`) |
+| `400` | Request body is not valid JSON (`{"message":"Invalid JSON body"}`) |
+| `404` | Unknown path or method (`{"message":"Route not found"}`) |
+| `500` | Unexpected server error (details logged, not exposed) |
+
+> **Note:** the `Book` schema in `app.js` has two required fields, `bookName` (a `String`) and `countInStock` (a `Number`). Mongoose strict mode drops fields that are not in the schema, so any extra keys in the request body are not stored.
 
 ### Scripts
 
 | Script | Command | Purpose |
 | --- | --- | --- |
-| `npm start` | `node index.js` | Run the server |
-| `npm run dev` | `nodemon index.js` | Run with auto-restart |
+| `npm start` | `node app.js` | Run the server |
+| `npm run dev` | `nodemon app.js` | Run with auto-restart |
 | `npm test` | `node --test` | Node's built-in test runner (no tests yet) |
-| `npm run type-check` | `node --check index.js` | Syntax check only |
+| `npm run type-check` | `node --check app.js && node --check index.js` | Syntax check only |
 
 ## Classwork product API
 

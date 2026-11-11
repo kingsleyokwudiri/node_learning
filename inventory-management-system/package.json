@@ -2,12 +2,12 @@
   "name": "inventory-management-system",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
+    "start": "node app.js",
+    "dev": "nodemon app.js",
     "test": "node --test",
-    "type-check": "node --check index.js"
+    "type-check": "node --check app.js && node --check index.js"
   },
   "keywords": [],
   "author": "",
