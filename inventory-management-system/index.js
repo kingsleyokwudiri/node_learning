@@ -14,15 +14,48 @@ const app = express();
 app.use(express.json());
 
 const bookSchema = mongoose.Schema({
-  bookName: { type: String, required: true },
+  title: { type: String, required: true },
+  author: { type: String, required: true },
   countInStock: { type: Number, required: true },
 });
 const BookModel = mongoose.model("Book", bookSchema);
 
 // /books is an endpoint.
 app.post("/books", async (req, res) => {
-  const newBook = await BookModel.create(req.body);
-  res.status(201).json(newBook);
+  try {
+    const newBook = await BookModel.create(req.body);
+    res.status(201).json(newBook);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.get("/books", async (req, res) => {
+  try {
+    const bookList = await BookModel.find();
+    res.status(200).send(bookList);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+// :id is a route parameter
+app.get("/books/:id", async (req, res) => {
+  try {
+    const book = await BookModel.findById(req.params.id);
+    res.status(200).json(book);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.delete("/books/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await BookModel.findByIdAndDelete(id);
+    res.status(200).json({ message: "Book deleted successfully" });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 });
 
 // Unmatched routes return JSON instead of Express's default HTML page.

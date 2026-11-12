@@ -4,7 +4,7 @@ Guidance for AI agents working in this repository.
 
 ## Project Overview
 
-A small Node.js inventory management API built on Express and Mongoose (MongoDB). The project is in an early stage and is split across two files: `index.js` builds and exports the Express app (Book schema/model, the single route `POST /books`, the JSON `404` handler, the error handler), and `app.js` is the entry point (loads `.env`, validates `MONGODB_URI`, requires `./index`, starts listening, connects to MongoDB). `POST /books` creates a document through a `Book` model with required `bookName` and `countInStock` fields. Responses are JSON: validation failures return `400`, unknown routes return a JSON `404`, and unexpected errors return `500` without leaking stack traces. There is no router/controller layer yet — extract one when `index.js` grows further.
+A small Node.js inventory management API built on Express and Mongoose (MongoDB). The project is in an early stage and is split across two files: `index.js` builds and exports the Express app (Book schema/model, the routes, the JSON `404` handler, the error handler), and `app.js` is the entry point (loads `.env`, validates `MONGODB_URI`, requires `./index`, starts listening, connects to MongoDB). Routes: `POST /books` creates a document, `GET /books` returns every book, and `GET /books/:id` returns one book. The `Book` model requires `title`, `author` and `countInStock`. Responses are JSON: validation failures return `400`, unknown routes return a JSON `404`, and unexpected errors return `500` without leaking stack traces. There is no router/controller layer yet — extract one when `index.js` grows further.
 
 ## Stack
 
@@ -40,7 +40,7 @@ eslint.config.mjs # ESLint 10 flat config for all three projects (ESM file)
 .gitignore        # Root ignores: node_modules/, .env*, *.log
 inventory-management-system/
   app.js          # Entry point: dotenv, MONGODB_URI check, app.listen, mongoose.connect
-  index.js        # Express app: Book model, POST /books, JSON 404, error handler
+  index.js        # Express app: Book model, POST /books, GET /books, GET /books/:id, JSON 404, error handler
   package.json    # Dependencies and scripts (start, dev via nodemon, test, type-check)
   .env.example    # Template for MONGODB_URI and PORT
 node_learning/    # Separate scratch Express app ("Hello, World!" on port 5000)
@@ -91,10 +91,11 @@ Tests run with Node's built-in test runner (`node --test`). There are no test fi
 
 - **Credentials are loaded from `MONGODB_URI`** in `.env` (gitignored). Never hardcode connection strings or commit `.env`. `.env.example` documents the required variables with placeholders.
 - `mongoose.connect(...)` is called after `app.listen(...)` and is not awaited before serving traffic. Keep this ordering in mind: handlers can run before the database is ready.
-- **`Book` has two required fields**, `bookName` (`String`) and `countInStock` (`Number`). Mongoose strict mode drops unknown paths, so extra keys in the request body are not stored. Add fields to `bookSchema` (in `index.js`) rather than relying on arbitrary body keys.
+- **`Book` has three required fields**, `title` (`String`), `author` (`String`) and `countInStock` (`Number`). Mongoose strict mode drops unknown paths, so extra keys in the request body are not stored. Add fields to `bookSchema` (in `index.js`) rather than relying on arbitrary body keys. The field names are still being iterated on, so update this list whenever `bookSchema` changes.
 - Handlers are not wrapped in `try`/`catch`. Express 5 forwards rejected promises from async handlers to the error middleware, which is why `BookModel.create` validation failures surface as `400` instead of crashing the process. Any new async handler gets this behaviour for free — but anything thrown outside a request (e.g. in `mongoose.connect`) is not covered.
 - Inside `index.js`, the error middleware must stay **after** all routes and keep its four-argument signature `(error, req, res, next)`; Express only recognises error handlers by arity. The JSON `404` handler must stay after all routes too, and `module.exports = app` must stay last.
-- Only `POST /books` exists. Unknown paths and methods return `{"message":"Route not found"}` with `404`; a Postman request to the wrong method on `/books` therefore looks like a missing route.
+- Registered routes are `POST /books`, `GET /books` and `GET /books/:id`; there is no `PATCH` or `DELETE` yet. Unknown paths and methods return `{"message":"Route not found"}` with `404`; a Postman request with the wrong method therefore looks like a missing route.
+- `GET /books/:id` returns `200` with a `null` body when the id is a valid ObjectId but no book matches — it does **not** return `404` yet. An id that is not a valid ObjectId throws a `CastError`, which the handler's own `catch` turns into a `400`.
 - `node_modules/` and `package-lock.json` are present; do not modify them by hand.
 - The root `.gitignore` ignores the root `node_modules/`, but `node_learning/node_modules/` is **already committed** upstream (588 tracked files) and `classwork/` + `inventory-management-system/` each have their own `.gitignore`. Adding a root ignore rule does not untrack files that are already in the index, so never `git add` a `node_modules` tree. Commit the root `package-lock.json` with the lint tooling change so installs stay reproducible.
 - Root `npm install` installs ESLint only (~80 packages, all devDependencies). It does not install the apps' runtime dependencies; each sub-project still needs its own `npm install`.

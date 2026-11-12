@@ -6,7 +6,7 @@ A collection of small Node.js/Express practice projects. Each project is self-co
 
 | Folder | Stack | What it is | Port |
 | --- | --- | --- | --- |
-| [`inventory-management-system/`](./inventory-management-system) | Express 5, Mongoose 9, dotenv | Inventory API backed by MongoDB. Currently exposes a single `POST /books` route. | `3000` (from `.env`) |
+| [`inventory-management-system/`](./inventory-management-system) | Express 5, Mongoose 9, dotenv | Inventory API backed by MongoDB. Exposes `POST /books`, `GET /books`, and `GET /books/:id`. | `3000` (from `.env`) |
 | [`classwork/`](./classwork) | Express 5 | Product API over an in-memory array of 8 products. No database. | `3000` |
 | [`node_learning/`](./node_learning) | Express 5 | Minimal "Hello, World!" server. | `5000` |
 
@@ -47,27 +47,34 @@ Copy `.env.example` to `.env`. `MONGODB_URI` is required — the app exits at st
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `POST` | `/books` | Creates a book from the JSON request body. Requires `bookName` and `countInStock`. |
+| `POST` | `/books` | Creates a book from the JSON request body. Requires `title`, `author` and `countInStock`. |
+| `GET` | `/books` | Returns every book. |
+| `GET` | `/books/:id` | Returns one book, or `null` when no book has that id. |
 
 Example:
 
 ```bash
+curl http://localhost:3000/books
+curl http://localhost:3000/books/<ID>
+
 curl -X POST http://localhost:3000/books \
   -H "Content-Type: application/json" \
-  -d '{"bookName":"The Pragmatic Programmer","countInStock":3}'
+  -d '{"title":"The Pragmatic Programmer","author":"Hunt & Thomas","countInStock":3}'
 ```
 
 Responses are always JSON:
 
 | Status | When |
 | --- | --- |
+| `200` | Books returned by `GET /books` or `GET /books/:id`. A missing book currently returns `200` with `null`, not `404`. |
 | `201` | Book created; returns the stored document |
-| `400` | `bookName`/`countInStock` missing, of the wrong type, or `countInStock` not a number (`{"message":"Validation failed","errors":{...}}`) |
+| `400` | `title`/`author`/`countInStock` missing, of the wrong type, or `countInStock` not a number (`{"message":"Validation failed","errors":{...}}`) |
+| `400` | `:id` is not a valid ObjectId, or a numeric field cannot be cast (`{"message":"..."}`) |
 | `400` | Request body is not valid JSON (`{"message":"Invalid JSON body"}`) |
 | `404` | Unknown path or method (`{"message":"Route not found"}`) |
 | `500` | Unexpected server error (details logged, not exposed) |
 
-> **Note:** the `Book` schema in `app.js` has two required fields, `bookName` (a `String`) and `countInStock` (a `Number`). Mongoose strict mode drops fields that are not in the schema, so any extra keys in the request body are not stored.
+> **Note:** the `Book` schema in `index.js` has three required fields: `title` (a `String`), `author` (a `String`) and `countInStock` (a `Number`). Mongoose strict mode drops fields that are not in the schema, so any extra keys in the request body are not stored. These field names are still being iterated on.
 
 ### Scripts
 
