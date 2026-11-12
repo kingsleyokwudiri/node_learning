@@ -142,7 +142,16 @@ Responses are always JSON:
 ```bash
 cd classwork
 npm install
-node index.js
+npm run dev     # nodemon, restarts on file changes
+npm start       # plain node, no auto-restart
+```
+
+`nodemon` is a **devDependency** of this project only (the inventory app has its own). `npm test` is still the npm placeholder that exits with an error — there are no tests here.
+
+The port is `process.env.PORT ?? 3000`. Set `PORT` to run this alongside another app on `3000`:
+
+```powershell
+$env:PORT=3001; npm run dev
 ```
 
 | Method | Path | Description |

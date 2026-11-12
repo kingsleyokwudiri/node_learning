@@ -72,13 +72,16 @@ npm run lint:fix   # auto-fix
 
 ## Classwork App (`classwork/`)
 
-`classwork/` is a separate npm project with its own `package.json`, `node_modules/`, and Express 5 dependency; it is not part of the inventory API and has no Mongo connection. Run it with `node index.js` from inside `classwork/`.
+`classwork/` is a separate npm project with its own `package.json`, `node_modules/`, and Express 5 dependency; it is not part of the inventory API and has no Mongo connection. Run it from inside `classwork/`: `npm start` (`node index.js`), `npm run dev` (`nodemon index.js`, restarts on changes), or bare `node --watch index.js`. `nodemon` is a **devDependency here** — keep it that way and do not add it to `dependencies`.
 
 - `classwork/index.js` serves an in-memory array of 8 products (no database).
 - `GET /products/high-ratings` filters `rating > ?rating`, defaulting to `3` when the query is omitted; a non-numeric value returns `400`.
 - `GET /product/:id` returns the product or `404` when the id is unknown or not an integer.
+- `POST /add-product` appends the JSON body to the in-memory list.
 - Unmatched routes fall through to a JSON `404` handler.
 - The port is `process.env.PORT ?? 3000`. Note that port `3000` is also the root app's default, so set `PORT` when running both at once (a second bind on `3000` fails or silently conflicts).
+- `npm test` is still the npm placeholder that exits with an error; there are no tests in this project. Switching it to `node --test` would make it pass with zero tests, like the inventory app — a deliberate change, not a drive-by one.
+- `npm install` here reports 2 moderate `npm audit` findings from `nodemon`'s `minimatch` dependency. They are dev-only; `npm audit fix --force` would *downgrade* nodemon to 3.1.11, so leave it alone unless a real fix lands upstream.
 
 ## Conventions
 
