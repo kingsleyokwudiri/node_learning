@@ -14,6 +14,7 @@ A small Node.js inventory management API built on Express and Mongoose (MongoDB)
 - Configuration: `dotenv` (path pinned to `__dirname/.env`)
 - Module system: CommonJS (`require` / `module.exports`) — `package.json` sets `"type": "commonjs"`
 - Language: plain JavaScript, no TypeScript or build step
+- Linting: ESLint 10 (flat config), installed once in the **root** `package.json` and shared by all three projects
 
 ## Running the App
 
@@ -34,6 +35,9 @@ npm start              # or: npm run dev (nodemon)
 ## Repository Layout
 
 ```
+package.json      # ROOT, tooling only: ESLint devDependencies + lint/lint:fix scripts
+eslint.config.mjs # ESLint 10 flat config for all three projects (ESM file)
+.gitignore        # Root ignores: node_modules/, .env*, *.log
 inventory-management-system/
   app.js          # Entry point: dotenv, MONGODB_URI check, app.listen, mongoose.connect
   index.js        # Express app: Book model, POST /books, JSON 404, error handler
@@ -44,6 +48,22 @@ classwork/        # Separate scratch Express app (in-memory products)
 ```
 
 The inventory app lives in `inventory-management-system/`. Keep request handling in `index.js` and process-level concerns (env, listening, DB connection) in `app.js`; `index.js` ends with `module.exports = app` and must never call `app.listen` or `mongoose.connect`. Requiring `index.js` alone therefore builds the app without opening a port, which is what tests should use. `package.json` points `main` and the `start`/`dev` scripts at `app.js`, so running `node index.js` only builds the app and exits — it does not serve. Introduce folders only when the code justifies them (for example `models/`, `routes/`, `controllers/`).
+
+## Linting
+
+ESLint runs from the repository root and covers all three projects — do not add a second ESLint config inside a sub-project.
+
+```bash
+npm install        # once, at the repo root
+npm run lint       # report
+npm run lint:fix   # auto-fix
+```
+
+- Config lives in the root `eslint.config.mjs` (ESLint 10 is flat-config only; `.eslintrc*` and `.eslintignore` are no longer supported).
+- The config file is ESM while every project's source is CommonJS. That is expected: the config uses `import` / `export default`, and `languageOptions.sourceType` is `"commonjs"` for `**/*.js`.
+- Rules: `js.configs.recommended` from `@eslint/js`, plus `globals.node`.
+- `no-unused-vars` is configured with `argsIgnorePattern: "^next$"` **for `inventory-management-system/index.js` only**, because Express recognises error handlers by arity and the unused `next` parameter is required. Do not "fix" that parameter by deleting it.
+- The VS Code ESLint extension picks this up automatically because the root has `node_modules/eslint`. If a file shows no squiggles, open the repo root as the workspace folder.
 
 ## Classwork App (`classwork/`)
 
@@ -60,7 +80,7 @@ The inventory app lives in `inventory-management-system/`. Keep request handling
 - Routes are registered directly with `app.get(...)`; follow that style until a router split is introduced.
 - Use `const`/`let`, double quotes, and semicolons to match existing code.
 - Keep port and connection settings configurable when touched — do not add more hardcoded values.
-- No linting or formatting tooling is configured. `npm run type-check` currently only performs a JavaScript syntax check (`node --check` on both `app.js` and `index.js`) because there is no TypeScript in the project. Match the surrounding style rather than reformatting files.
+- Linting is ESLint (see **Linting** above): run `npm run lint` from the repo root before considering a change done. `npm run type-check` (inside `inventory-management-system/`) still only performs a JavaScript syntax check (`node --check` on both `app.js` and `index.js`) because there is no TypeScript in the project. Match the surrounding style rather than reformatting files.
 - Never commit `.env`; add new variables to `.env.example` with placeholder values.
 
 ## Testing
@@ -76,6 +96,8 @@ Tests run with Node's built-in test runner (`node --test`). There are no test fi
 - Inside `index.js`, the error middleware must stay **after** all routes and keep its four-argument signature `(error, req, res, next)`; Express only recognises error handlers by arity. The JSON `404` handler must stay after all routes too, and `module.exports = app` must stay last.
 - Only `POST /books` exists. Unknown paths and methods return `{"message":"Route not found"}` with `404`; a Postman request to the wrong method on `/books` therefore looks like a missing route.
 - `node_modules/` and `package-lock.json` are present; do not modify them by hand.
+- The root `.gitignore` ignores the root `node_modules/`, but `node_learning/node_modules/` is **already committed** upstream (588 tracked files) and `classwork/` + `inventory-management-system/` each have their own `.gitignore`. Adding a root ignore rule does not untrack files that are already in the index, so never `git add` a `node_modules` tree. Commit the root `package-lock.json` with the lint tooling change so installs stay reproducible.
+- Root `npm install` installs ESLint only (~80 packages, all devDependencies). It does not install the apps' runtime dependencies; each sub-project still needs its own `npm install`.
 
 ## Mandatory Guardrails & Security
 
@@ -88,6 +110,7 @@ Tests run with Node's built-in test runner (`node --test`). There are no test fi
 ## Before Finishing Work
 
 - Re-read `README.md` and `AGENTS.md` and update both to reflect the work being committed (see **Documentation in every commit** above). `README.md` is the user-facing description of setup and endpoints; `AGENTS.md` is the agent-facing record of state, conventions, and pitfalls. Keep them consistent with each other.
+- Run `npm run lint` from the repo root and resolve new reports (or explain why a rule is intentionally disabled).
 - Run the server and confirm it starts if you changed startup or routing code.
 - Remove debugging `console.log` output that is not intentional.
 - Do not commit secrets or the MongoDB connection string.

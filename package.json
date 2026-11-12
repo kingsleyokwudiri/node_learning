@@ -1,0 +1,16 @@
+{
+  "name": "node-learning",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Root of the node_learning practice projects: shared lint tooling only.",
+  "type": "commonjs",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0"
+  }
+}

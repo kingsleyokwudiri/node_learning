@@ -12,6 +12,21 @@ A collection of small Node.js/Express practice projects. Each project is self-co
 
 > All three default to port `3000` except `node_learning/`, so only one of the `3000` projects can run at a time. Set `PORT` to run them side by side.
 
+## Linting (all projects)
+
+ESLint is installed **once at the repository root** and checks all three projects. The root `package.json` is tooling only: it has no runtime dependencies and does not start any app.
+
+```bash
+npm install        # once, at the repo root
+npm run lint       # report problems
+npm run lint:fix   # fix what can be fixed automatically
+```
+
+- Config: `eslint.config.mjs` (ESLint 10 flat config) — `@eslint/js` recommended rules, Node globals, `sourceType: "commonjs"`.
+- The config file is ESM even though the projects are CommonJS; that is standard for ESLint 10 and does not change how the apps load.
+- Each sub-project keeps its own `node_modules` for its runtime dependencies. `npm install` at the root only installs ESLint.
+- VS Code: the ESLint extension uses the root install, so open the repository root as your workspace folder.
+
 ## Inventory management system
 
 The main project. Requires a MongoDB connection string. `index.js` holds the Express app (schema/model, routes, 404 and error handlers) and `app.js` is the entry point that loads `.env`, connects to MongoDB, and starts listening.
