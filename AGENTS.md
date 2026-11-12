@@ -88,6 +88,7 @@ npm run lint:fix   # auto-fix
 - Routes live on an `express.Router()` in `routes/books.routes.js`, mounted once in `index.js` with `app.use("/books", booksRouter)`. Declare paths relative to the mount point (`router.get("/:id")`, not `router.get("/books/:id")`), and register new routers in `index.js` **above** the 404 handler.
 - Use `const`/`let`, double quotes, and semicolons to match existing code.
 - Keep port and connection settings configurable when touched — do not add more hardcoded values.
+- Keep `dependencies` runtime-only and put dev tooling in `devDependencies`. Both apps follow this: `nodemon` is a devDependency in `inventory-management-system/` and `classwork/`, so `npm install --omit=dev` installs only what serving needs. Installing a watcher or linter as a regular dependency is a mistake to fix, not copy.
 - Linting is ESLint (see **Linting** above): run `npm run lint` from the repo root before considering a change done. `npm run type-check` (inside `inventory-management-system/`) still only performs a JavaScript syntax check (`node --check` on `app.js`, `index.js`, `routes/books.routes.js` and `models/book.model.js`) because there is no TypeScript in the project. Add any new source file to that script. Match the surrounding style rather than reformatting files.
 - Never commit `.env`; add new variables to `.env.example` with placeholder values.
 
