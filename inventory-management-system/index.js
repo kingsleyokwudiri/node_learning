@@ -7,77 +7,15 @@
 // 405 - method not allowed, 409 - conflict, 422 - unprocessable entity, 429 - too many requests
 
 const express = require("express");
-const mongoose = require("mongoose");
+const booksRouter = require("./routes/books.routes");
 
 const app = express();
 // for JSON request body parsing
 app.use(express.json());
 
-const bookSchema = mongoose.Schema({
-  title: { type: String, required: true },
-  author: { type: String, required: true },
-  countInStock: { type: Number, required: true },
-});
-const BookModel = mongoose.model("Book", bookSchema);
-
-// /books is an endpoint.
-app.post("/books", async (req, res) => {
-  try {
-    const newBook = await BookModel.create(req.body);
-    res.status(201).json(newBook);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-app.get("/books", async (req, res) => {
-  try {
-    const bookList = await BookModel.find();
-    res.status(200).send(bookList);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-// :id is a route parameter
-app.get("/books/:id", async (req, res) => {
-  try {
-    const book = await BookModel.findById(req.params.id);
-    if (!book) {
-      return res.status(400).json({ message: "Book not found" });
-    }
-    res.status(200).json(book);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-app.delete("/books/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deletedBook = await BookModel.findByIdAndDelete(id);
-    if (!deletedBook) {
-      return res.status(400).json({ message: "Book not found" });
-    }
-    res.status(200).json({ message: "Book deleted successfully" });
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-app.put("/books/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updatedBook = await BookModel.findByIdAndUpdate(id, req.body, {
-      new: true,
-    });
-    if (!updatedBook) {
-      return res.status(400).json({ message: "Book not found" });
-    }
-    res.status(200).json({ message: "Book updated successfully", updatedBook });
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
+// The book handlers live in routes/books.routes.js; mounting them here keeps
+// the /books prefix in one place. Must stay above the 404 handler.
+app.use("/books", booksRouter);
 
 // Unmatched routes return JSON instead of Express's default HTML page.
 app.use((req, res) => {

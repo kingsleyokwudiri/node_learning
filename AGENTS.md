@@ -4,7 +4,7 @@ Guidance for AI agents working in this repository.
 
 ## Project Overview
 
-A small Node.js inventory management API built on Express and Mongoose (MongoDB). The project is in an early stage and is split across two files: `index.js` builds and exports the Express app (Book schema/model, the routes, the JSON `404` handler, the error handler), and `app.js` is the entry point (loads `.env`, validates `MONGODB_URI`, requires `./index`, starts listening, connects to MongoDB). Routes: `POST /books` creates a document, `GET /books` returns every book, and `GET /books/:id` returns one book. The `Book` model requires `title`, `author` and `countInStock`. Responses are JSON: validation failures return `400`, unknown routes return a JSON `404`, and unexpected errors return `500` without leaking stack traces. There is no router/controller layer yet — extract one when `index.js` grows further.
+A small Node.js inventory management API built on Express and Mongoose (MongoDB). `app.js` is the entry point (loads `.env`, validates `MONGODB_URI`, requires `./index`, starts listening, connects to MongoDB). `index.js` builds and exports the Express app: it applies `express.json()`, mounts `booksRouter` at `/books`, and owns the JSON `404` handler and the error handler. The book handlers live in `routes/books.routes.js` as an `express.Router()`, and the `Book` schema/model lives in `models/book.model.js` — the model had to leave `index.js` because a router requiring `index.js` for it would be a circular require. Routes: `POST /books` creates a document, `GET /books` returns every book, `GET /books/:id` returns one book, `PUT /books/:id` updates one, `DELETE /books/:id` deletes one. The `Book` model requires `title`, `author` and `countInStock`. Responses are JSON: validation failures return `400`, unknown routes return a JSON `404`, and unexpected errors return `500` without leaking stack traces. There is no controller layer yet — add one under `controllers/` if the handlers grow past CRUD.
 
 ## Stack
 
@@ -31,6 +31,7 @@ npm start              # or: npm run dev (nodemon)
 - The app exits at startup with a clear message if `MONGODB_URI` is missing; the check runs before `app.listen(...)`.
 - The app connects to MongoDB on startup; a connection failure is logged but the HTTP server still starts.
 - **Port 27017 egress depends on the network.** On `NITDA-ICT-HUB` the app failed with "Could not connect to any servers … IP that isn't whitelisted" even though Atlas had `0.0.0.0/0` open: that Wi-Fi dropped outbound TCP 27015-27017 (`portquiz.net:80` connected, `portquiz.net:27017` and `8.8.8.8:27017` timed out). On `Nodza Gashaka` the same `.env` connects successfully. If the error returns, re-check the network path with `Test-NetConnection portquiz.net -Port 27017` before touching Atlas or the code.
+- **Local MongoDB is the fallback for blocked networks.** MongoDB Community Server is installed on this machine as Windows service `MongoDB` (`winget install --id MongoDB.Server --exact`), listening on `127.0.0.1:27017` with data under `C:\Program Files\MongoDB\Server\<version>\data`. Switching between Atlas and local is a `.env`-only change — `MONGODB_URI=mongodb://127.0.0.1:27017/inventory-management` for local, the `mongodb+srv://` string for Atlas. No code reads or rewrites the URI, so do not add connection-branching logic. The local database starts empty and is unrelated to the Atlas data. Keep the MSI default `bindIp` (loopback only): there is no authentication configured, and changing it to `0.0.0.0` would expose an unauthenticated database to the network. `mongosh` (`winget install --id MongoDB.Shell --exact`) is optional and only used to verify the server answers.
 
 ## Repository Layout
 
@@ -40,14 +41,18 @@ eslint.config.mjs # ESLint 10 flat config for all three projects (ESM file)
 .gitignore        # Root ignores: node_modules/, .env*, *.log
 inventory-management-system/
   app.js          # Entry point: dotenv, MONGODB_URI check, app.listen, mongoose.connect
-  index.js        # Express app: Book model, POST /books, GET /books, GET /books/:id, JSON 404, error handler
+  index.js        # Express app: express.json, mounts booksRouter at /books, JSON 404, error handler
+  models/
+    book.model.js # bookSchema + Book model (mongoose.model("Book", ...))
+  routes/
+    books.routes.js # express.Router(): POST /, GET /, GET /:id, PUT /:id, DELETE /:id
   package.json    # Dependencies and scripts (start, dev via nodemon, test, type-check)
   .env.example    # Template for MONGODB_URI and PORT
 node_learning/    # Separate scratch Express app ("Hello, World!" on port 5000)
 classwork/        # Separate scratch Express app (in-memory products)
 ```
 
-The inventory app lives in `inventory-management-system/`. Keep request handling in `index.js` and process-level concerns (env, listening, DB connection) in `app.js`; `index.js` ends with `module.exports = app` and must never call `app.listen` or `mongoose.connect`. Requiring `index.js` alone therefore builds the app without opening a port, which is what tests should use. `package.json` points `main` and the `start`/`dev` scripts at `app.js`, so running `node index.js` only builds the app and exits — it does not serve. Introduce folders only when the code justifies them (for example `models/`, `routes/`, `controllers/`).
+The inventory app lives in `inventory-management-system/`. `index.js` builds the app and owns the middleware order; book request handling lives in `routes/books.routes.js` and the schema in `models/book.model.js`. Process-level concerns (env, listening, DB connection) stay in `app.js`; `index.js` ends with `module.exports = app` and must never call `app.listen` or `mongoose.connect`. Requiring `index.js` alone therefore builds the app without opening a port, which is what tests should use. `package.json` points `main` and the `start`/`dev` scripts at `app.js`, so running `node index.js` only builds the app and exits — it does not serve. Add new folders only when the code justifies them (`controllers/` is the next candidate); do not create empty placeholder files.
 
 ## Linting
 
@@ -77,10 +82,10 @@ npm run lint:fix   # auto-fix
 
 ## Conventions
 
-- Routes are registered directly with `app.get(...)`; follow that style until a router split is introduced.
+- Routes live on an `express.Router()` in `routes/books.routes.js`, mounted once in `index.js` with `app.use("/books", booksRouter)`. Declare paths relative to the mount point (`router.get("/:id")`, not `router.get("/books/:id")`), and register new routers in `index.js` **above** the 404 handler.
 - Use `const`/`let`, double quotes, and semicolons to match existing code.
 - Keep port and connection settings configurable when touched — do not add more hardcoded values.
-- Linting is ESLint (see **Linting** above): run `npm run lint` from the repo root before considering a change done. `npm run type-check` (inside `inventory-management-system/`) still only performs a JavaScript syntax check (`node --check` on both `app.js` and `index.js`) because there is no TypeScript in the project. Match the surrounding style rather than reformatting files.
+- Linting is ESLint (see **Linting** above): run `npm run lint` from the repo root before considering a change done. `npm run type-check` (inside `inventory-management-system/`) still only performs a JavaScript syntax check (`node --check` on `app.js`, `index.js`, `routes/books.routes.js` and `models/book.model.js`) because there is no TypeScript in the project. Add any new source file to that script. Match the surrounding style rather than reformatting files.
 - Never commit `.env`; add new variables to `.env.example` with placeholder values.
 
 ## Testing
@@ -91,11 +96,11 @@ Tests run with Node's built-in test runner (`node --test`). There are no test fi
 
 - **Credentials are loaded from `MONGODB_URI`** in `.env` (gitignored). Never hardcode connection strings or commit `.env`. `.env.example` documents the required variables with placeholders.
 - `mongoose.connect(...)` is called after `app.listen(...)` and is not awaited before serving traffic. Keep this ordering in mind: handlers can run before the database is ready.
-- **`Book` has three required fields**, `title` (`String`), `author` (`String`) and `countInStock` (`Number`). Mongoose strict mode drops unknown paths, so extra keys in the request body are not stored. Add fields to `bookSchema` (in `index.js`) rather than relying on arbitrary body keys. The field names are still being iterated on, so update this list whenever `bookSchema` changes.
-- Handlers are not wrapped in `try`/`catch`. Express 5 forwards rejected promises from async handlers to the error middleware, which is why `BookModel.create` validation failures surface as `400` instead of crashing the process. Any new async handler gets this behaviour for free — but anything thrown outside a request (e.g. in `mongoose.connect`) is not covered.
-- Inside `index.js`, the error middleware must stay **after** all routes and keep its four-argument signature `(error, req, res, next)`; Express only recognises error handlers by arity. The JSON `404` handler must stay after all routes too, and `module.exports = app` must stay last.
-- Registered routes are `POST /books`, `GET /books` and `GET /books/:id`; there is no `PATCH` or `DELETE` yet. Unknown paths and methods return `{"message":"Route not found"}` with `404`; a Postman request with the wrong method therefore looks like a missing route.
-- `GET /books/:id` returns `200` with a `null` body when the id is a valid ObjectId but no book matches — it does **not** return `404` yet. An id that is not a valid ObjectId throws a `CastError`, which the handler's own `catch` turns into a `400`.
+- **`Book` has three required fields**, `title` (`String`), `author` (`String`) and `countInStock` (`Number`). Mongoose strict mode drops unknown paths, so extra keys in the request body are not stored. Add fields to `bookSchema` (in `models/book.model.js`) rather than relying on arbitrary body keys. The field names are still being iterated on, so update this list whenever `bookSchema` changes.
+- Each book handler wraps its own `try`/`catch` and returns `400` with `error.message`. The `index.js` error middleware is the second line of defence for anything a handler does not catch: Express 5 forwards rejected promises from async handlers to it. Anything thrown outside a request (e.g. in `mongoose.connect`) is not covered.
+- Inside `index.js`, the error middleware must stay **after** the router mount and keep its four-argument signature `(error, req, res, next)`; Express only recognises error handlers by arity. The JSON `404` handler must stay after the router mount too, and `module.exports = app` must stay last. A router registered below the 404 handler is unreachable.
+- Registered routes are `POST /books`, `GET /books`, `GET /books/:id`, `PUT /books/:id` and `DELETE /books/:id`; there is no `PATCH`. Unknown paths and methods return `{"message":"Route not found"}` with `404`; a Postman request with the wrong method therefore looks like a missing route.
+- **No book route returns `404`.** A valid ObjectId with no matching book produces `400` with `{"message":"Book not found"}` from `GET`, `PUT` and `DELETE`. An id that is not a valid ObjectId throws a `CastError`, which each handler's own `catch` turns into a `400`. Returning `404` for a missing document is the usual REST choice and would be a behaviour change — decide deliberately, do not "fix" it as part of an unrelated edit.
 - `node_modules/` and `package-lock.json` are present; do not modify them by hand.
 - The root `.gitignore` ignores the root `node_modules/`, but `node_learning/node_modules/` is **already committed** upstream (588 tracked files) and `classwork/` + `inventory-management-system/` each have their own `.gitignore`. Adding a root ignore rule does not untrack files that are already in the index, so never `git add` a `node_modules` tree. Commit the root `package-lock.json` with the lint tooling change so installs stay reproducible.
 - Root `npm install` installs ESLint only (~80 packages, all devDependencies). It does not install the apps' runtime dependencies; each sub-project still needs its own `npm install`.

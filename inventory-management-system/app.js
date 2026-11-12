@@ -13,8 +13,9 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// The schema, routes and middleware live in index.js; requiring it after
-// dotenv means any process.env reads there see .env values.
+// The routes, schema model and middleware live in index.js, routes/ and
+// models/; requiring it after dotenv means any process.env reads there see
+// .env values.
 const app = require("./index");
 
 const port = process.env.PORT || 3000;

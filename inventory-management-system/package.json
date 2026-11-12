@@ -7,7 +7,7 @@
     "start": "node app.js",
     "dev": "nodemon app.js",
     "test": "node --test",
-    "type-check": "node --check app.js && node --check index.js"
+    "type-check": "node --check app.js && node --check index.js && node --check routes/books.routes.js && node --check models/book.model.js"
   },
   "keywords": [],
   "author": "",
