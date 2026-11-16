@@ -67,7 +67,7 @@ npm run lint:fix   # auto-fix
 - Config lives in the root `eslint.config.mjs` (ESLint 10 is flat-config only; `.eslintrc*` and `.eslintignore` are no longer supported).
 - The config file is ESM while every project's source is CommonJS. That is expected: the config uses `import` / `export default`, and `languageOptions.sourceType` is `"commonjs"` for `**/*.js`.
 - Rules: `js.configs.recommended` from `@eslint/js`, plus `globals.node`.
-- `no-unused-vars` is configured with `argsIgnorePattern: "^next$"` **for `inventory-management-system/index.js` only**, because Express recognises error handlers by arity and the unused `next` parameter is required. Do not "fix" that parameter by deleting it.
+- `no-unused-vars` is configured with `argsIgnorePattern: "^next$"` **for `inventory-management-system/index.js` and `classwork/index.js` only**, because Express recognises error handlers by arity and the unused `next` parameter is required. Do not "fix" that parameter by deleting it.
 - The VS Code ESLint extension picks this up automatically because the root has `node_modules/eslint`. If a file shows no squiggles, open the repo root as the workspace folder.
 
 ## Classwork App (`classwork/`)
@@ -75,10 +75,12 @@ npm run lint:fix   # auto-fix
 `classwork/` is a separate npm project with its own `package.json`, `node_modules/`, and Express 5 dependency; it is not part of the inventory API and has no Mongo connection. Run it from inside `classwork/`: `npm start` (`node index.js`), `npm run dev` (`nodemon index.js`, restarts on changes), or bare `node --watch index.js`. `nodemon` is a **devDependency here** — keep it that way and do not add it to `dependencies`.
 
 - `classwork/index.js` serves an in-memory array of 8 products (no database).
-- `GET /products/high-ratings` filters `rating > ?rating`, defaulting to `3` when the query is omitted; a non-numeric value returns `400`.
+- `GET /products/high-ratings` filters `rating > ?rating`, defaulting to `3` when the query is omitted **or empty**; a non-numeric value returns `400`. A repeated param (`?rating=1&rating=2`) arrives as an array, so only the first value is used.
 - `GET /product/:id` returns the product or `404` when the id is unknown or not an integer.
-- `POST /add-product` appends the JSON body to the in-memory list.
-- Unmatched routes fall through to a JSON `404` handler.
+- `PATCH /product/:id` updates `stock` only: `200` with the updated product, `404` for an unknown id, `400` when `stock` is missing or non-numeric. It writes back into the `products` array — building a new object and returning it does not persist anything.
+- `POST /add-product` requires a non-empty `name` and numeric `price` (optional numeric `stock`), assigns the next `id`, and returns `201` with the created product. Without an assigned id the stored product is unfindable through `GET /product/:id`.
+- Unmatched routes fall through to a JSON `404` handler, and malformed JSON gets `400 {"message":"Invalid JSON body"}` from a 4-arg error handler rather than Express's HTML page.
+- **The `app.use` 404 handler must stay last.** It used to be registered above `PATCH /product/:id` and `POST /add-product`, so both routes answered `404` to every request — an ordering bug green lint cannot catch. Any route added below the 404 handler is dead.
 - The port is `process.env.PORT ?? 3000`. Note that port `3000` is also the root app's default, so set `PORT` when running both at once (a second bind on `3000` fails or silently conflicts).
 - `npm test` is still the npm placeholder that exits with an error; there are no tests in this project. Switching it to `node --test` would make it pass with zero tests, like the inventory app — a deliberate change, not a drive-by one.
 - `npm install` here reports 2 moderate `npm audit` findings from `nodemon`'s `minimatch` dependency. They are dev-only; `npm audit fix --force` would *downgrade* nodemon to 3.1.11, so leave it alone unless a real fix lands upstream.

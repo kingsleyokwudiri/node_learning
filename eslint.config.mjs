@@ -28,10 +28,10 @@ export default [
   },
 
   // Express only treats 4-argument middleware as an error handler, so the
-  // unused `next` parameter in index.js is required by the framework, not
-  // dead code.
+  // unused `next` parameter in the error handler is required by the framework,
+  // not dead code. Both apps have one.
   {
-    files: ["inventory-management-system/index.js"],
+    files: ["inventory-management-system/index.js", "classwork/index.js"],
     rules: {
       "no-unused-vars": ["error", { argsIgnorePattern: "^next$" }],
     },

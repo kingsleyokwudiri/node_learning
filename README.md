@@ -156,12 +156,15 @@ $env:PORT=3001; npm run dev
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/products/high-ratings?rating=3` | Products with `rating` above the given value (default `3`; non-numeric returns `400`) |
-| `GET` | `/product/:id` | Single product by id (`404` if unknown) |
-| `POST` | `/add-product` | Appends the JSON body to the in-memory list |
+| `GET` | `/products/high-ratings?rating=3` | Products with `rating` above the given value. Defaults to `3` when the param is omitted or empty; a non-numeric value returns `400`. |
+| `GET` | `/product/:id` | Single product by id (`404` if unknown or not an integer) |
+| `PATCH` | `/product/:id` | Updates `stock` only. `200` with the updated product, `404` for an unknown id, `400` if `stock` is missing or not a number. |
+| `POST` | `/add-product` | Adds a product. Requires a non-empty `name` and numeric `price` (`400` otherwise), optional numeric `stock`. Assigns the next `id` and returns `201` with the created product. |
 | any | anything else | JSON `404` |
 
-Data lives in memory, so it resets on every restart.
+Every response is JSON, including malformed request bodies (`400 {"message":"Invalid JSON body"}`). Data lives in memory, so it resets on every restart — and `PATCH`/`POST` changes are lost with it.
+
+> The JSON `404` handler must stay **last** in `index.js`. It used to sit above `PATCH /product/:id` and `POST /add-product`, which made both routes unreachable (`404` on every call).
 
 ## Hello World server
 

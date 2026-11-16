@@ -170,9 +170,15 @@ const products = [
 ];
 
 app.get("/products/high-ratings", (req, res) => {
-  // Defaults to the rating from the exercise: products above 3.
-  const ratingParam = req.query.rating ?? "3";
-  const minRating = Number(ratingParam);
+  // Defaults to the rating from the exercise: products above 3. An empty
+  // ?rating= also falls back to the default, and repeated params
+  // (?rating=1&rating=2) arrive as an array, so take the first element rather
+  // than coercing the array to NaN.
+  const rawRating = Array.isArray(req.query.rating)
+    ? req.query.rating[0]
+    : req.query.rating;
+  const minRating =
+    rawRating === undefined || rawRating === "" ? 3 : Number(rawRating);
 
   if (!Number.isFinite(minRating)) {
     return res.status(400).json({ message: "rating must be a number" });
@@ -204,21 +210,90 @@ app.get("/product/:id", (req, res) => {
   });
 });
 
+// Only `stock` is updatable here, matched with the same Number() parsing that
+// GET /product/:id uses so both routes agree on what a valid id is.
+app.patch("/product/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const productIndex = products.findIndex((product) => product.id === id);
+
+  if (productIndex === -1) {
+    return res.status(404).json({ message: "Product not found" });
+  }
+
+  const { stock } = req.body ?? {};
+
+  if (!Number.isFinite(stock)) {
+    return res.status(400).json({ message: "stock must be a number" });
+  }
+
+  // Write back into the array. Building a new object and returning it (the
+  // previous version) left the stored product untouched.
+  products[productIndex] = { ...products[productIndex], stock };
+
+  return res.status(200).json({
+    message: "Product updated successfully",
+    product: products[productIndex],
+  });
+});
+
+app.post("/add-product", (req, res) => {
+  const { name, price, stock = 0 } = req.body ?? {};
+
+  if (typeof name !== "string" || name.trim() === "") {
+    return res.status(400).json({ message: "name is required" });
+  }
+
+  if (!Number.isFinite(price)) {
+    return res.status(400).json({ message: "price must be a number" });
+  }
+
+  if (!Number.isFinite(stock)) {
+    return res.status(400).json({ message: "stock must be a number" });
+  }
+
+  // Assign the id here, otherwise the stored product has id: undefined and
+  // GET /product/:id can never find it.
+  const nextId =
+    products.reduce((highest, product) => Math.max(highest, product.id), 0) + 1;
+
+  const newProduct = {
+    id: nextId,
+    name: name.trim(),
+    price,
+    stock,
+    rating: 0,
+    isAvailable: stock > 0,
+    createdAt: new Date().toISOString(),
+  };
+
+  products.push(newProduct);
+
+  return res.status(201).json({
+    message: "Product added successfully",
+    product: newProduct,
+  });
+});
+
+// Unmatched routes return JSON. Keep this last: anything registered below it
+// is unreachable, which is how PATCH and POST /add-product were dead before.
 app.use((req, res) => {
   return res.status(404).json({ message: "Route not found" });
+});
+
+// Malformed JSON would otherwise fall through to Express's HTML error page.
+// Mirrors the inventory app's handler; `next` is unused but Express only
+// recognises error handlers by arity.
+app.use((error, req, res, next) => {
+  if (error.name === "SyntaxError" && error.status === 400) {
+    return res.status(400).json({ message: "Invalid JSON body" });
+  }
+
+  console.error(error);
+  return res.status(500).json({ message: "Internal server error" });
 });
 
 const port = process.env.PORT ?? 3000;
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
-});
-
-app.post("/add-product", (req, res) => {
-  const newProduct = req.body;
-  products.push(newProduct);
-  return res.json({
-    message: `Product added successfully`,
-    products: products,
-  });
 });
