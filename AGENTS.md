@@ -93,7 +93,7 @@ npm run lint:fix   # auto-fix
 - Keep `dependencies` runtime-only and put dev tooling in `devDependencies`. Both apps follow this: `nodemon` is a devDependency in `inventory-management-system/` and `classwork/`, so `npm install --omit=dev` installs only what serving needs. Installing a watcher or linter as a regular dependency is a mistake to fix, not copy.
 - Linting is ESLint (see **Linting** above): run `npm run lint` from the repo root before considering a change done. `npm run type-check` (inside `inventory-management-system/`) still only performs a JavaScript syntax check (`node --check` on `app.js`, `index.js`, `routes/books.routes.js` and `models/book.model.js`) because there is no TypeScript in the project. Add any new source file to that script. Match the surrounding style rather than reformatting files.
 - Never commit `.env`; add new variables to `.env.example` with placeholder values.
-- **Keep commit messages short.** An imperative subject like `fix(classwork): ...` or `docs: ...`, then at most two or three body lines on *why*. Long explanations belong in `README.md` / `AGENTS.md`, not in the message.
+- **Write commit messages in plain words.** An imperative subject like `fix(classwork): ...` or `docs: ...` plus a body that says why, in everyday language rather than jargon or long technical explanations — those belong in `README.md` / `AGENTS.md`.
 
 ## Testing
 
@@ -115,7 +115,7 @@ Tests run with Node's built-in test runner (`node --test`). There are no test fi
 ## Mandatory Guardrails & Security
 
 - **Credentials & Secrets:** Never look at, expose, or log database passwords, connection strings, or sensitive credentials without explicit permission.
-- **Git Commits:** Do not include co-authors in git commit messages or trailers (e.g., no `Co-authored-by:` lines). Keep the message short — see **Conventions**.
+- **Git Commits:** Do not include co-authors in git commit messages or trailers (e.g., no `Co-authored-by:` lines). Use plain words, not jargon — see **Conventions**.
 - **Documentation in every commit (mandatory):** Every commit must review and update **both** `README.md` and this `AGENTS.md` so they match the code being committed. A change to routes, endpoints, request/response shapes, scripts, ports, environment variables, dependencies, project structure, or known issues is never complete until both files say so. If a file genuinely needs no change, state that explicitly in the commit message or hand-off. Do not leave documentation updates for a later commit.
 - **Code Integrity:** Always ensure `npm run type-check` and tests pass before completing a task.
 - **Dependencies:** Do not introduce new third-party packages without explicit permission.
